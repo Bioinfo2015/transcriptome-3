@@ -168,14 +168,8 @@ sub recipBlast {
 	while(<IN>) {
 		chomp(my $line = $_);
 		my @d = split(/\t/,$line);
-		if ($r{$d[0]}) {
-		  if ($d[11] == $score) {
-		    $r{$d[0]}{$d[1]}++;
-		  }
-		}
-		else {
+		unless ($r{$d[0]}) {
 		  $r{$d[0]}{$d[1]}++;
-		  $score = $d[11];
 		}
 	      }
 
@@ -328,14 +322,26 @@ sub annotateProt {
 				my @call3 = `exonerate $target $query -m protein2genome --showalignment no --showcigar 0`;
 				unlink($query); unlink($target);
 				my $info;
+				my @match;
+				
+				
+				foreach (@call3) {
+				  chomp (my @line = split /\s+/, $_);
+				  if ($line[0] =~m /vulgar/) {
+				    push @match, $line[6]+1;
+				    push @match, $line[7];
+				  } # if ($line[0] =~m /vulgar/) {
+				}
+				my $start = min (@match);
+				my $end = max (@match);
+				
+				
 				my @d = split(/\s+/,$call3[2]);
 				if ($d[8]){
 				if ($d[8] eq '+' || $d[8] eq '-') {
 					if ($d[8] eq '+') {
 						#this is in 5->3
 						#identify gene start and stop
-						my $start = $d[6] + 1;
-						my $end = $d[7];
 						$info = 'gs' . $start . '_ge' . $end;
 						if ($d[3]/$protlength > 0.9 || $protlength - $d[3] < 11) {
 							#yes, i am going to call it a  3' utr
@@ -353,8 +359,8 @@ sub annotateProt {
 						$seq{$id}{'seq'} = reverse($seq{$id}{'seq'});
 						$seq{$id}{'seq'} =~ tr/ATGC/TACG/;	
 						
-						my $gs = $contiglength - $d[6] + 1;
-						my $ge = $contiglength - $d[7];
+						my $gs = $contiglength - $start;
+						my $ge = $contiglength - $end;
 						$info = 'gs' . $gs . '_ge' . $ge;
 					
 						if ($d[3]/$protlength > 0.9 || $protlength - $d[3] < 11) {
