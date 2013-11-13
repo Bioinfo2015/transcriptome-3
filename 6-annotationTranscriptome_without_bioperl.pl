@@ -785,23 +785,13 @@ sub orfFinesse {
 					my @call3 = `exonerate $target $query -m protein2genome --showalignment no --showcigar 0`;
 					unlink($query); unlink($target);
 					my $info;
-
-					# find start / end among all matches
-					my @match;
-					foreach (@call3) {
-					  chomp (my @line = split /\s+/, $_);
-					  if ($line[0] =~m /vulgar/) {
-					    push @match, $line[6]+1;
-					    push @match, $line[7];
-					  } # if ($line[0] =~m /vulgar/) {
-					}
-					my $start = min (@match);
-					my $end = max (@match);
-
 					my @d = split(/\s+/,$call3[2]);
 					if ($d[8] eq '+' || $d[8] eq '-') {
 						if ($d[8] eq '+') {
 							#this is in 5->3
+							#identify gene start and stop
+							my $start = $d[6] + 1;
+							my $end = $d[7];
 							$info = 'gs' . $start . '_ge' . $end;
 							if ($d[3]/$protlength > 0.9 || $protlength - $d[3] < 11) {
 								#yes, i am going to call it a  3' utr
