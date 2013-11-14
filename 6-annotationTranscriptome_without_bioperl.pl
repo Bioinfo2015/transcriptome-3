@@ -322,20 +322,24 @@ sub annotateProt {
 				my @call3 = `exonerate $target $query -m protein2genome --showalignment no --showcigar 0`;
 				unlink($query); unlink($target);
 				my $info;
+				
 				my @match;
-				
-				
+				my @prot5;
+				my @prot3;
 				foreach (@call3) {
 				  chomp (my @line = split /\s+/, $_);
 				  if ($line[0] =~m /vulgar/) {
+				    print join ("\t", @line), "\n";
 				    push @match, $line[6]+1;
 				    push @match, $line[7];
-				  } # if ($line[0] =~m /vulgar/) {
+				    push @prot3, $line[3];
+				    push @prot5, $line[2];
+				  }
 				}
 				my $start = min (@match);
 				my $end = max (@match);
-				
-				
+				my $fiveu = min (@prot5);
+				my $threeu = max (@prot3);
 				my @d = split(/\s+/,$call3[2]);
 				if ($d[8]){
 				if ($d[8] eq '+' || $d[8] eq '-') {
@@ -343,12 +347,13 @@ sub annotateProt {
 						#this is in 5->3
 						#identify gene start and stop
 						$info = 'gs' . $start . '_ge' . $end;
-						if ($d[3]/$protlength > 0.9 || $protlength - $d[3] < 11) {
+						print $id, "\t",$start, "\t", $end, "\n";
+						if ($threeu/$protlength > 0.9 || $protlength - $threeu < 11) {
 							#yes, i am going to call it a  3' utr
 							my $utr3 = $end+1;
 							$info = $info . '_3u' . $utr3;
 							}
-						if ($d[2]/$protlength < 0.1 || $d[2] < 11) {
+						if ($fiveu/$protlength < 0.1 || $fiveu < 11) {
 							#yes, i am going to call it a 5' utr
 							my $utr5 = $start - 1;
 							$info = '5u' . $utr5 . "_" . $info;
@@ -359,16 +364,16 @@ sub annotateProt {
 						$seq{$id}{'seq'} = reverse($seq{$id}{'seq'});
 						$seq{$id}{'seq'} =~ tr/ATGC/TACG/;	
 						
-						my $gs = $contiglength - $start;
-						my $ge = $contiglength - $end;
+						my $gs = $contiglength - $end+2;
+						my $ge = $contiglength - $start;
 						$info = 'gs' . $gs . '_ge' . $ge;
-					
-						if ($d[3]/$protlength > 0.9 || $protlength - $d[3] < 11) {
+					print $id, "\t", $gs, "\t", $ge, "\n";
+						if ($threeu/$protlength > 0.9 || $protlength - $threeu < 11) {
 							#yes, i am going to call it a  3' utr
 							my $utr3 = $ge+1;
 							$info = $info . '_3u' . $utr3;
 							}
-						if ($d[2]/$protlength < 0.1 || $d[2] < 11) {
+						if ($fiveu/$protlength < 0.1 || $fiveu < 11) {
 							#yes, i am going to call it a 5' utr
 							my $utr5 = $gs - 1;
 							$info = '5u' . $utr5 . '_' . $info;
@@ -785,20 +790,36 @@ sub orfFinesse {
 					my @call3 = `exonerate $target $query -m protein2genome --showalignment no --showcigar 0`;
 					unlink($query); unlink($target);
 					my $info;
+					
+					my @match;
+					my @prot5;
+					my @prot3;
+					foreach (@call3) {
+					  chomp (my @line = split /\s+/, $_);
+					  if ($line[0] =~m /vulgar/) {
+					    push @match, $line[6]+1;
+					    push @match, $line[7];
+					    push @prot3, $line[3];
+					    push @prot5, $line[2];
+					  }
+					}
+					my $start = min (@match);
+					my $end = max (@match);
+					my $fiveu = min (@prot5);
+					my $threeu = max (@prot3);
+					
 					my @d = split(/\s+/,$call3[2]);
 					if ($d[8] eq '+' || $d[8] eq '-') {
 						if ($d[8] eq '+') {
 							#this is in 5->3
 							#identify gene start and stop
-							my $start = $d[6] + 1;
-							my $end = $d[7];
 							$info = 'gs' . $start . '_ge' . $end;
-							if ($d[3]/$protlength > 0.9 || $protlength - $d[3] < 11) {
+							if ($threeu/$protlength > 0.9 || $protlength - $threeu < 11) {
 								#yes, i am going to call it a  3' utr
 								my $utr3 = $end+1;
 								$info = $info . '_3u' . $utr3;
 								}
-							if ($d[2]/$protlength < 0.1 || $d[2] < 11) {
+							if ($fiveu/$protlength < 0.1 || $fiveu < 11) {
 								#yes, i am going to call it a 5' utr
 								my $utr5 = $start - 1;
 								$info = '5u' . $utr5 . "_" . $info;
